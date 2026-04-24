@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post-COD Compliance — FERVO PPA Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0d1420;
+    --surface-2: #131d2e;
+    --border: #1e2d45;
+    --border-bright: #2a3f5f;
+    --amber: #e8a020;
+    --amber-dim: #7a520f;
+    --amber-glow: rgba(232,160,32,0.12);
+    --teal: #1fbfaa;
+    --teal-dim: rgba(31,191,170,0.15);
+    --red: #e05252;
+    --red-dim: rgba(224,82,82,0.12);
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.12);
+    --text: #c8d8ec;
+    --text-dim: #5a7a9a;
+    --text-faint: #2a3f5f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(8,12,20,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 40px;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .nav-brand span { color: var(--text-dim); font-weight: 400; }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+
+  .nav-links a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active { color: var(--text); background: var(--surface-2); }
+  .nav-links a.active { color: var(--amber); border: 1px solid var(--amber-dim); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2.5s infinite;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .status-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    padding: 72px 32px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .page-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* PROJECT SELECTOR */
+  .project-selector {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .proj-card {
+    flex: 1;
+    min-width: 180px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .proj-card:hover { border-color: var(--border-bright); }
+
+  .proj-card.selected {
+    border-color: var(--amber);
+    background: var(--surface-2);
+  }
+
+  .proj-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--border);
+  }
+
+  .proj-card.selected::after { background: var(--amber); }
+  .proj-card.on-track::after { background: var(--green); }
+  .proj-card.warning::after { background: var(--amber); }
+  .proj-card.breach::after { background: var(--red); }
+
+  .proj-card-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+
+  .proj-card-type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .proj-card-compliance {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .compliance-ring {
+    position: relative;
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+  }
+
+  .compliance-ring svg { transform: rotate(-90deg); }
+
+  .compliance-ring circle {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .compliance-track { stroke: var(--border); }
+
+  .compliance-fill-green { stroke: var(--green); }
+  .compliance-fill-amber { stroke: var(--amber); }
+  .compliance-fill-red { stroke: var(--red); }
+
+  .compliance-pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .proj-card-stats {
+    flex: 1;
+  }
+
+  .proj-stat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+
+  /* DETAIL LAYOUT */
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+  }
+
+  /* OBLIGATION TABLE */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .panel-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+  }
+
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+  .badge-amber { background: var(--amber-glow); color: var(--amber); border: 1px solid var(--amber-dim); }
+  .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
+
+  /* OBLIGATION ITEM */
+  .ob-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(30,45,69,0.4);
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .ob-item:hover { background: var(--surface-2); }
+  .ob-item:last-child { border-bottom: none; }
+
+  .ob-check {
+    width: 22px; height: 22px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .ob-check.done { background: var(--green-dim); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+  .ob-check.overdue { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
+  .ob-check.upcoming { background: var(--amber-glow); color: var(--amber); border: 1px solid var(--amber-dim); }
+  .ob-check.future { background: var(--surface-2); color: var(--text-faint); border: 1px solid var(--border); }
+
+  .ob-content { flex: 1; }
+
+  .ob-id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-bottom: 3px;
+    letter-spacing: 0.06em;
+  }
+
+  .ob-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .ob-description {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+
+  .ob-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ob-meta-item {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+  }
+
+  .ob-meta-item.highlight { color: var(--amber); }
+  .ob-meta-item.overdue-text { color: var(--red); }
+  .ob-meta-item.done-text { color: var(--green); }
+
+  .ob-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .ob-due {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  .btn-sm {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-sm:hover { color: var(--text); border-color: var(--border-bright); }
+  .btn-sm.submit { border-color: var(--green); color: var(--green); }
+  .btn-sm.submit:hover { background: var(--green-dim); }
+  .btn-sm.urgent { border-color: var(--red); color: var(--red); }
+
+  /* TIMELINE */
+  .timeline {
+    padding: 20px;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 35px;
+    top: 24px;
+    bottom: 24px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .tl-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .tl-item:last-child { margin-bottom: 0; }
+
+  .tl-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tl-dot.done { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .tl-dot.upcoming { background: var(--amber); }
+  .tl-dot.future { background: var(--border); }
+
+  .tl-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    width: 65px;
+    flex-shrink: 0;
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .tl-content { flex: 1; }
+
+  .tl-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .tl-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  /* RIGHT SIDEBAR */
+  .sidebar-right { }
+
+  .info-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .info-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .info-body { padding: 16px; }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(30,45,69,0.4);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+  }
+
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--text-dim); }
+  .info-val { color: var(--text); text-align: right; }
+  .info-val.green { color: var(--green); }
+  .info-val.amber { color: var(--amber); }
+  .info-val.red { color: var(--red); }
+
+  .obligation-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .ob-sum-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .ob-sum-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .ob-sum-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .project-selector,
+  .detail-layout { animation: fadeUp 0.3s ease both; }
+  .detail-layout { animation-delay: 0.1s; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">FERVO <span>// PPA Intelligence</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Dashboard</a></li>
+    <li><a href="shadow-redline.html">Shadow Redline</a></li>
+    <li><a href="regulatory-feed.html">Regulatory Feed</a></li>
+    <li><a href="compliance.html" class="active">Post-COD Compliance</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="status-dot"></div>
+    <span class="status-label">3 geothermal projects tracked</span>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Post-COD Compliance</div>
+      <div class="page-subtitle">// GEOTHERMAL & EGS PROJECTS — CONTRACTUAL OBLIGATION TRACKING · COD → TERM</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);text-align:right;line-height:1.8;margin-right:8px;">
+        FILTER: <span style="color:var(--teal)">EGS + GEOTHERMAL ONLY</span><br>
+        NON-GEO PROJECTS EXCLUDED
+      </div>
+      <button style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:8px 16px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;">⤓ Export Report</button>
+      <button style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:8px 16px;border-radius:3px;border:none;background:var(--amber);color:#080c14;font-weight:500;cursor:pointer;">+ Add Obligation</button>
+    </div>
+  </div>
+
+  <!-- PROJECT SELECTOR -->
+  <div class="project-selector">
+
+    <!-- Project Red Station 1 — EGS, selected -->
+    <div class="proj-card on-track selected">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+        <div style="width:8px;height:8px;border-radius:1px;background:#9b7fe8;flex-shrink:0;"></div>
+        <div class="proj-card-name">Project Red — Station 1</div>
+      </div>
+      <div class="proj-card-type">EGS Brownfield · 40MW · NV Energy · COD: Q4 2026</div>
+      <div class="proj-card-compliance" style="margin-top:10px;">
+        <div class="compliance-ring">
+          <svg viewBox="0 0 36 36" width="36" height="36">
+            <circle class="compliance-track" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="0"/>
+            <circle class="compliance-fill-green" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="9.4"/>
+          </svg>
+          <div class="compliance-pct">90%</div>
+        </div>
+        <div class="proj-card-stats">
+          <div class="proj-stat">9/10 pre-COD obligations met</div>
+          <div class="proj-stat" style="color:var(--amber)">1 overdue · cure active</div>
+          <div class="proj-stat" style="color:var(--teal)">Fallon, NV · Wells A1–A8</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painted Rock Geo — conventional geo -->
+    <div class="proj-card on-track">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+        <div style="width:8px;height:8px;border-radius:1px;background:var(--teal);flex-shrink:0;"></div>
+        <div class="proj-card-name">Painted Rock Geo</div>
+      </div>
+      <div class="proj-card-type">Geothermal · 35MW · Rocky Mtn Pwr · COD: Jan 15, 2026</div>
+      <div class="proj-card-compliance" style="margin-top:10px;">
+        <div class="compliance-ring">
+          <svg viewBox="0 0 36 36" width="36" height="36">
+            <circle class="compliance-track" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="0"/>
+            <circle class="compliance-fill-green" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="3.8"/>
+          </svg>
+          <div class="compliance-pct">96%</div>
+        </div>
+        <div class="proj-card-stats">
+          <div class="proj-stat">24/25 obligations met</div>
+          <div class="proj-stat" style="color:var(--amber)">1 upcoming (14d)</div>
+          <div class="proj-stat" style="color:var(--green)">On track</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cape Station 1 — EGS, incoming COD -->
+    <div class="proj-card" style="border-color:rgba(62,207,142,0.35);background:rgba(62,207,142,0.03);cursor:default;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+        <div style="width:8px;height:8px;border-radius:1px;background:var(--green);flex-shrink:0;animation:pulse 1.8s infinite;box-shadow:0 0 5px var(--green);"></div>
+        <div class="proj-card-name">Cape Station — Station 1</div>
+      </div>
+      <div class="proj-card-type">EGS Greenfield · 50MW · Rocky Mtn Pwr · COD: Q3 2026</div>
+      <div style="margin-top:12px;padding:10px;background:rgba(62,207,142,0.06);border:1px solid rgba(62,207,142,0.2);border-radius:3px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--green);letter-spacing:0.08em;margin-bottom:4px;">⬤ COD IMMINENT — Q3 2026</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.6;">
+          Milford, UT · Wells M1–M10<br>
+          Obligation tracker activates on COD notice
+        </div>
+      </div>
+    </div>
+
+    <!-- Future placeholder — Cape Red Station 2 -->
+    <div class="proj-card" style="border-style:dashed;cursor:default;opacity:0.45;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint);text-align:center;padding:18px 0;">
+        <div style="font-size:18px;margin-bottom:6px;">+</div>
+        Pre-COD<br>
+        Project Red — Station 2<br>
+        <span style="font-size:9px;">Est. COD 2028</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PROJECT DETAIL — Project Red Station 1 -->
+  <div class="detail-layout">
+
+    <div>
+
+      <!-- CONTRACT SUMMARY -->
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:3px;height:20px;background:#9b7fe8;border-radius:2px;"></div>
+            <span class="panel-title">// Project Red — Station 1 &nbsp;·&nbsp; Contract Summary</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 8px;border-radius:2px;background:rgba(155,127,232,0.12);color:#9b7fe8;border:1px solid rgba(155,127,232,0.25);">EGS · BROWNFIELD</span>
+          </div>
+          <span class="panel-badge badge-amber">⬤ COD Q4 2026</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);padding:16px 20px;gap:16px;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:4px;">COUNTERPARTY</div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">NV Energy</div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:4px;">COD TARGET</div>
+            <div style="font-size:13px;font-weight:500;color:var(--amber);">Q4 2026</div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:4px;">CAPACITY</div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">40 MW</div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:4px;">CONTRACT TERM</div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">20 years</div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:4px;">CONTRACT PRICE</div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">$52.00/MWh</div>
+          </div>
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:4px;">PERFORMANCE GUAR.</div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">90% CF / year</div>
+          </div>
+        </div>
+        <!-- EGS-specific note -->
+        <div style="padding:10px 20px;background:rgba(155,127,232,0.04);border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.8;">
+          <span style="color:#9b7fe8;">// EGS SPECIFICS</span> &nbsp;·&nbsp; Brownfield wells A1–A8 · Fallon, NV · Pre-existing geothermal field · Stimulation complete · Interconnection: NV Energy 138kV tap · WECC/SNWA compliance zone
+        </div>
+      </div>
+
+      <!-- OBLIGATION TRACKER -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// Obligation Tracker — Pre-COD Milestones & Post-COD Readiness</span>
+          <div style="display:flex;gap:8px;">
+            <span class="panel-badge badge-red">1 OVERDUE</span>
+            <span class="panel-badge badge-amber">3 UPCOMING</span>
+            <span class="panel-badge badge-green">6 COMPLETE</span>
+          </div>
+        </div>
+
+        <!-- OVERDUE -->
+        <div class="ob-item">
+          <div class="ob-check overdue">!</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-05 · § 6.2 INTERCONNECTION</div>
+            <div class="ob-title">WECC Real-Time Telemetry Commissioning Certificate</div>
+            <div class="ob-description">Submit executed WECC RC-0072 compliant telemetry commissioning certificate to NV Energy prior to COD. Updated 2-second reporting interval required per revised WECC RC-0072 (Apr 20, 2026). Engineering team must re-certify against revised standard before submission.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item overdue-text">⚠ OVERDUE — WECC RC-0072 revision triggered re-cert</span>
+              <span class="ob-meta-item">Original due: Apr 15, 2026</span>
+              <span class="ob-meta-item">Cure period: 10 days</span>
+              <span class="ob-meta-item">Blocks COD if unresolved</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due">
+              <span style="color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:9px;">OVERDUE</span><br>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);">5d cure left</span>
+            </div>
+            <button class="btn-sm urgent">⚠ Route to Eng.</button>
+            <button class="btn-sm">⊕ Assign</button>
+          </div>
+        </div>
+
+        <!-- UPCOMING 1 -->
+        <div class="ob-item">
+          <div class="ob-check upcoming">→</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-07 · § 3.5 COD</div>
+            <div class="ob-title">Final Well Performance Test Report — Submission to Buyer</div>
+            <div class="ob-description">Submit certified 30-day well performance test results for wells A1–A8 demonstrating aggregate capacity ≥ 40 MW at contract delivery point. Results must be signed by licensed Nevada geothermal engineer. Prerequisite for COD declaration.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item highlight">Due in 18 days</span>
+              <span class="ob-meta-item">Due: May 11, 2026</span>
+              <span class="ob-meta-item">One-time / Pre-COD</span>
+              <span class="ob-meta-item">§ 3.5 / Exhibit C</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due">
+              <span style="color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:9px;">18 DAYS</span><br>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);">May 11, 2026</span>
+            </div>
+            <button class="btn-sm submit">✓ Mark Complete</button>
+            <button class="btn-sm">⤓ Template</button>
+          </div>
+        </div>
+
+        <!-- UPCOMING 2 -->
+        <div class="ob-item">
+          <div class="ob-check upcoming">→</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-08 · § 4.1 INSURANCE</div>
+            <div class="ob-title">Operational Insurance Certificates — Pre-COD Filing</div>
+            <div class="ob-description">File updated insurance certificates (general liability $10M, property, professional liability, environmental impairment) with NV Energy as additional insured. Must include geothermal-specific reservoir performance rider per § 4.1(d).</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item highlight">Due in 30 days</span>
+              <span class="ob-meta-item">Due: May 23, 2026</span>
+              <span class="ob-meta-item">Annual thereafter</span>
+              <span class="ob-meta-item">§ 4.1(d) · Geo-specific rider req.</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due">
+              <span style="color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:9px;">30 DAYS</span><br>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);">May 23, 2026</span>
+            </div>
+            <button class="btn-sm">⊙ View Template</button>
+            <button class="btn-sm">+ Assign Owner</button>
+          </div>
+        </div>
+
+        <!-- UPCOMING 3 — post-COD recurring -->
+        <div class="ob-item">
+          <div class="ob-check future">○</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-10 · § 9.1 METERING</div>
+            <div class="ob-title">Monthly Generation & Metering Data — First Post-COD Report</div>
+            <div class="ob-description">First monthly generation and metering data submission due 20 days after end of first full calendar month of operation. Must include gross generation, station service deductions, net delivery, and any curtailment events with timestamps and cause codes.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item">Activates at COD</span>
+              <span class="ob-meta-item">Recurrence: Monthly · 20th of following month</span>
+              <span class="ob-meta-item">§ 9.1 / OATI Settlements</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due">
+              <span style="color:var(--text-faint);font-family:'IBM Plex Mono',monospace;font-size:9px;">POST-COD</span><br>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);">Activates Q4 2026</span>
+            </div>
+            <button class="btn-sm">⊙ Preview</button>
+          </div>
+        </div>
+
+        <!-- COMPLETE items -->
+        <div class="ob-item">
+          <div class="ob-check done">✓</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-01 · § 5.1 INTERCONNECTION</div>
+            <div class="ob-title">Interconnection Agreement Executed — NV Energy 138kV</div>
+            <div class="ob-description">Fully executed large generator interconnection agreement with NV Energy. Queue position confirmed, GIA executed, deposit posted.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item done-text">✓ Completed Feb 12, 2026</span>
+              <span class="ob-meta-item">One-time</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due"><span style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:9px;">COMPLETE</span></div>
+            <button class="btn-sm">⊙ View Record</button>
+          </div>
+        </div>
+
+        <div class="ob-item">
+          <div class="ob-check done">✓</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-02 · § 7.1 PERMITS</div>
+            <div class="ob-title">Nevada Geothermal Exploration & Development Permits — All Issued</div>
+            <div class="ob-description">All required State of Nevada DOGM geothermal exploration and development permits issued for wells A1–A8. Copies delivered to Buyer per § 7.1(b).</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item done-text">✓ Completed Mar 3, 2026</span>
+              <span class="ob-meta-item">One-time</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due"><span style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:9px;">COMPLETE</span></div>
+            <button class="btn-sm">⊙ View Record</button>
+          </div>
+        </div>
+
+        <div class="ob-item">
+          <div class="ob-check done">✓</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-03 · § 3.2 MILESTONES</div>
+            <div class="ob-title">EGS Stimulation Completion Notice — Wells A1–A8</div>
+            <div class="ob-description">Written notice of successful reservoir stimulation completion for all 8 production wells. Includes hydraulic stimulation data package and reservoir connectivity confirmation.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item done-text">✓ Completed Apr 1, 2026</span>
+              <span class="ob-meta-item">One-time · EGS-specific milestone</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due"><span style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:9px;">COMPLETE</span></div>
+            <button class="btn-sm">⊙ View Record</button>
+          </div>
+        </div>
+
+        <div class="ob-item">
+          <div class="ob-check done">✓</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-04 · § 8.2 SCHEDULING</div>
+            <div class="ob-title">OATI WebTrans Scheduling Registration — Completed</div>
+            <div class="ob-description">Seller registered as scheduling coordinator on OATI WebTrans for NV Energy balancing authority area. Required prior to first energy delivery.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item done-text">✓ Completed Apr 8, 2026</span>
+              <span class="ob-meta-item">One-time</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due"><span style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:9px;">COMPLETE</span></div>
+            <button class="btn-sm">⊙ View Record</button>
+          </div>
+        </div>
+
+        <div class="ob-item">
+          <div class="ob-check done">✓</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-06 · § 11.2 RECs</div>
+            <div class="ob-title">WREGIS Account Registration & Facility Certification</div>
+            <div class="ob-description">Project Red Station 1 registered in WREGIS as eligible renewable generation facility. NV RPS compliance certification obtained. Buyer's WREGIS sub-account linked for REC transfers at COD.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item done-text">✓ Completed Apr 14, 2026</span>
+              <span class="ob-meta-item">One-time / Annual renewal</span>
+              <span class="ob-meta-item">Nevada RPS · NRS 704.7821</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due"><span style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:9px;">COMPLETE</span></div>
+            <button class="btn-sm">⊙ View Record</button>
+          </div>
+        </div>
+
+        <div class="ob-item">
+          <div class="ob-check done">✓</div>
+          <div class="ob-content">
+            <div class="ob-id">PR1-OB-09 · § 6.3 OPS</div>
+            <div class="ob-title">Operations & Maintenance Plan — Submitted to Buyer</div>
+            <div class="ob-description">Annual O&M plan including well workover schedule, surface plant maintenance calendar, and HSE plan delivered to NV Energy per § 6.3(a). Includes EGS-specific reservoir management protocol.</div>
+            <div class="ob-meta">
+              <span class="ob-meta-item done-text">✓ Completed Apr 20, 2026</span>
+              <span class="ob-meta-item">Annual · Due 30 days before each anniversary</span>
+            </div>
+          </div>
+          <div class="ob-actions">
+            <div class="ob-due"><span style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:9px;">COMPLETE</span></div>
+            <button class="btn-sm">⊙ View Record</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar-right">
+
+      <div class="info-panel">
+        <div class="info-header">// Compliance Summary — PR Station 1</div>
+        <div class="obligation-summary">
+          <div class="ob-sum-box">
+            <div class="ob-sum-val" style="color:var(--green);">6</div>
+            <div class="ob-sum-label">Complete</div>
+          </div>
+          <div class="ob-sum-box">
+            <div class="ob-sum-val" style="color:var(--amber);">3</div>
+            <div class="ob-sum-label">Upcoming</div>
+          </div>
+          <div class="ob-sum-box">
+            <div class="ob-sum-val" style="color:var(--red);">1</div>
+            <div class="ob-sum-label">Overdue</div>
+          </div>
+          <div class="ob-sum-box">
+            <div class="ob-sum-val">10</div>
+            <div class="ob-sum-label">Total</div>
+          </div>
+        </div>
+        <div style="padding:0 16px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-dim);">Pre-COD Completion</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--amber);">60%</span>
+          </div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:10px;">
+            <div style="height:100%;width:60%;background:var(--amber);border-radius:2px;"></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--red);">⚠ WECC re-cert overdue — blocks COD path if unresolved within 5 days</div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <div class="info-header">// Contract Terms — Key</div>
+        <div class="info-body">
+          <div class="info-row">
+            <span class="info-key">Contract Price</span>
+            <span class="info-val">$52.00/MWh</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Performance Guar.</span>
+            <span class="info-val">90% CF/yr</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Curtailment Cap</span>
+            <span class="info-val">5% / month</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">LD Cap (Seller)</span>
+            <span class="info-val">$3.0M total</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Force Majeure</span>
+            <span class="info-val green">Open-ended ext.</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Well Failure Prov.</span>
+            <span class="info-val amber">§ 12.6 — EGS-specific</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Contract Expires</span>
+            <span class="info-val">COD + 20 years</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <div class="info-header">// Fleet View — All Geo Projects</div>
+        <div class="info-body" style="padding:12px 16px;">
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="width:6px;height:6px;background:#9b7fe8;border-radius:1px;"></div>
+                <span style="font-size:11px;color:var(--text);">Project Red Stn 1</span>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--amber);">60% pre-COD</span>
+            </div>
+            <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;width:60%;background:var(--amber);border-radius:2px;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="width:6px;height:6px;background:var(--teal);border-radius:1px;"></div>
+                <span style="font-size:11px;color:var(--text);">Painted Rock Geo</span>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--green);">96% compliant</span>
+            </div>
+            <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;width:96%;background:var(--green);border-radius:2px;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <div style="width:6px;height:6px;background:var(--green);border-radius:1px;box-shadow:0 0 4px var(--green);"></div>
+                <span style="font-size:11px;color:var(--text);">Cape Station 1</span>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--teal);">COD Q3 2026</span>
+            </div>
+            <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;width:15%;background:var(--teal);border-radius:2px;"></div>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text-faint);margin-top:3px;">Obligation tracker activates on COD</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-panel">
+        <div class="info-header">// Obligation Timeline — Next 90d</div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-date">Apr 15<br>OVERDUE</div>
+            <div class="tl-dot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div>
+            <div class="tl-content">
+              <div class="tl-title" style="color:var(--red);">WECC Telemetry Re-cert</div>
+              <div class="tl-meta">PR1-OB-05 · 5d cure left · Blocks COD</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 7</div>
+            <div class="tl-dot upcoming"></div>
+            <div class="tl-content">
+              <div class="tl-title">Painted Rock — REC Transfer</div>
+              <div class="tl-meta">PRG-OB-11 · Monthly · 14 days</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 11</div>
+            <div class="tl-dot upcoming"></div>
+            <div class="tl-content">
+              <div class="tl-title">Well Performance Test Report</div>
+              <div class="tl-meta">PR1-OB-07 · Pre-COD req. · 18 days</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">May 23</div>
+            <div class="tl-dot upcoming"></div>
+            <div class="tl-content">
+              <div class="tl-title">Operational Insurance — Filed</div>
+              <div class="tl-meta">PR1-OB-08 · Geo rider required</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">Jul 1</div>
+            <div class="tl-dot future"></div>
+            <div class="tl-content">
+              <div class="tl-title">Painted Rock — Q2 Perf. Report</div>
+              <div class="tl-meta">PRG-OB-09 · Quarterly</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">Q3 2026</div>
+            <div class="tl-dot" style="background:var(--green);box-shadow:0 0 5px var(--green);"></div>
+            <div class="tl-content">
+              <div class="tl-title" style="color:var(--green);">Cape Station 1 — COD</div>
+              <div class="tl-meta">Obligation tracker activates</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
