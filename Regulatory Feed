@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regulatory Feed — FERVO PPA Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0d1420;
+    --surface-2: #131d2e;
+    --border: #1e2d45;
+    --border-bright: #2a3f5f;
+    --amber: #e8a020;
+    --amber-dim: #7a520f;
+    --amber-glow: rgba(232,160,32,0.12);
+    --teal: #1fbfaa;
+    --teal-dim: rgba(31,191,170,0.15);
+    --red: #e05252;
+    --red-dim: rgba(224,82,82,0.12);
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.12);
+    --purple: #9b7fe8;
+    --purple-dim: rgba(155,127,232,0.12);
+    --text: #c8d8ec;
+    --text-dim: #5a7a9a;
+    --text-faint: #2a3f5f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(8,12,20,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 40px;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .nav-brand span { color: var(--text-dim); font-weight: 400; }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+
+  .nav-links a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active { color: var(--text); background: var(--surface-2); }
+  .nav-links a.active { color: var(--amber); border: 1px solid var(--amber-dim); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2.5s infinite;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .status-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    padding: 72px 32px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .page-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .filter-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    padding: 4px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .filter-pill:hover { border-color: var(--border-bright); color: var(--text); }
+  .filter-pill.active-ferc { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+  .filter-pill.active-state { border-color: var(--teal); color: var(--teal); background: var(--teal-dim); }
+  .filter-pill.active-rto { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+  .filter-pill.active-all { border-color: var(--border-bright); color: var(--text); }
+
+  .filter-search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 12px;
+    transition: border-color 0.15s;
+  }
+
+  .filter-search:focus-within { border-color: var(--border-bright); }
+
+  .filter-search input {
+    background: none;
+    border: none;
+    outline: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    width: 220px;
+  }
+
+  .filter-search input::placeholder { color: var(--text-faint); }
+
+  /* MAIN LAYOUT */
+  .reg-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+  }
+
+  /* SOURCE TABS */
+  .source-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .source-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+    bottom: -1px;
+  }
+
+  .source-tab:hover { color: var(--text); }
+  .source-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  .tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 2px;
+    font-size: 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .tab-count.red { background: var(--red-dim); color: var(--red); }
+  .tab-count.amber { background: var(--amber-glow); color: var(--amber); }
+  .tab-count.teal { background: var(--teal-dim); color: var(--teal); }
+
+  /* REG ITEM */
+  .reg-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+    cursor: pointer;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .reg-item:hover { border-color: var(--border-bright); }
+
+  .reg-item.unreviewed { border-left: 3px solid var(--amber); }
+  .reg-item.review-req { border-left: 3px solid var(--red); }
+  .reg-item.incorporated { border-left: 3px solid var(--green); }
+  .reg-item.pending { border-left: 3px solid var(--teal); }
+
+  .reg-item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+
+  .reg-source-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .badge-ferc { background: var(--amber-glow); color: var(--amber); border: 1px solid var(--amber-dim); }
+  .badge-co { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(31,191,170,0.3); }
+  .badge-tx { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(155,127,232,0.3); }
+  .badge-wecc { background: rgba(100,120,200,0.15); color: #7a9abf; border: 1px solid rgba(100,120,200,0.3); }
+  .badge-spp { background: rgba(200,150,80,0.12); color: #c8a050; border: 1px solid rgba(200,150,80,0.3); }
+  .badge-ercot { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(155,127,232,0.3); }
+
+  .reg-main { flex: 1; }
+
+  .reg-docket {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  .reg-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .reg-summary {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .reg-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .reg-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .reg-status-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 140px;
+  }
+
+  .reg-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-faint);
+    text-align: right;
+  }
+
+  .reg-status-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .status-atty { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,82,82,0.3); }
+  .status-pending { background: var(--amber-glow); color: var(--amber); border: 1px solid var(--amber-dim); }
+  .status-incorporated { background: var(--green-dim); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+  .status-review { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(31,191,170,0.3); }
+
+  .reg-projects {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: var(--text-faint);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .reg-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-sm {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-sm:hover { color: var(--text); border-color: var(--border-bright); }
+  .btn-sm.approve { border-color: var(--amber); color: var(--amber); }
+  .btn-sm.approve:hover { background: var(--amber-glow); }
+
+  /* RIGHT SIDEBAR */
+  .monitor-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .monitor-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .monitor-body { padding: 16px; }
+
+  .monitor-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(30,45,69,0.4);
+  }
+
+  .monitor-item:last-child { border-bottom: none; }
+
+  .monitor-name { font-size: 11px; color: var(--text); }
+  .monitor-meta { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-dim); }
+
+  .monitor-indicator {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ind-green { background: var(--green); box-shadow: 0 0 5px var(--green); }
+  .ind-amber { background: var(--amber); }
+  .ind-red { background: var(--red); box-shadow: 0 0 5px var(--red); }
+
+  .volume-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+    margin-top: 12px;
+  }
+
+  .vol-bar {
+    flex: 1;
+    background: var(--border);
+    border-radius: 2px 2px 0 0;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .vol-bar:hover { background: var(--amber); }
+
+  .vol-bar .vol-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    border-radius: 2px 2px 0 0;
+    background: var(--amber);
+    opacity: 0.6;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reg-item:nth-child(1) { animation-delay: 0.03s; }
+  .reg-item:nth-child(2) { animation-delay: 0.07s; }
+  .reg-item:nth-child(3) { animation-delay: 0.11s; }
+  .reg-item:nth-child(4) { animation-delay: 0.15s; }
+  .reg-item:nth-child(5) { animation-delay: 0.19s; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">FERVO <span>// PPA Intelligence</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Dashboard</a></li>
+    <li><a href="shadow-redline.html">Shadow Redline</a></li>
+    <li><a href="regulatory-feed.html" class="active">Regulatory Feed</a></li>
+    <li><a href="compliance.html">Post-COD Compliance</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="status-dot"></div>
+    <span class="status-label">Live monitoring — 14 dockets</span>
+  </div>
+</nav>
+
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Regulatory Feed</div>
+      <div class="page-subtitle">// FERC DOCKETS · STATE LEGISLATIVE SESSIONS · RTO/ISO RULE CHANGES</div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);text-align:right;line-height:1.8">
+      MONITORING: FERC · WECC · SPP · CO · TX · NV · NM<br>
+      LAST PULL: <strong style="color:var(--text)">04/23/2026 — 09:30 MDT</strong><br>
+      HUMAN-IN-LOOP: <strong style="color:var(--amber)">3 bills pending review</strong>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <div class="filter-pills">
+      <button class="filter-pill active-all">All (23)</button>
+      <button class="filter-pill active-ferc">FERC (8)</button>
+      <button class="filter-pill active-state">State Leg. (9)</button>
+      <button class="filter-pill active-rto">RTO/ISO (6)</button>
+      <button class="filter-pill">Atty Review (3)</button>
+      <button class="filter-pill">Pending (11)</button>
+      <button class="filter-pill">Incorporated (9)</button>
+    </div>
+    <div class="filter-search">
+      <span style="color:var(--text-faint);font-size:12px">⌕</span>
+      <input type="text" placeholder="Search dockets, bills, keywords...">
+    </div>
+  </div>
+
+  <div class="reg-layout">
+
+    <!-- FEED -->
+    <div>
+
+      <div class="source-tabs">
+        <div class="source-tab active">All Sources <span class="tab-count amber">23</span></div>
+        <div class="source-tab">FERC <span class="tab-count amber">8</span></div>
+        <div class="source-tab">State Legislation <span class="tab-count amber">9</span></div>
+        <div class="source-tab">RTO / ISO <span class="tab-count teal">6</span></div>
+      </div>
+
+      <!-- Item 1 — Attorney Review Required -->
+      <div class="reg-item review-req">
+        <div class="reg-item-header">
+          <span class="reg-source-badge badge-ferc">FERC</span>
+          <div class="reg-main">
+            <div class="reg-docket">RM22-14-001 · ORDER 2023-A SUPPLEMENTAL</div>
+            <div class="reg-title">Interconnection Cluster Study Reform — Supplemental Guidance on Queue Position Stability</div>
+            <div class="reg-summary">Supplemental order clarifies that queue position modifications resulting from Transmission Provider-directed cluster study reconfigurations shall not constitute voluntary withdrawal. Direct applicability to any PPA containing unqualified Buyer termination rights tied to queue position changes.</div>
+            <div class="reg-tags">
+              <span class="reg-tag">§ 5.1 EXPOSURE</span>
+              <span class="reg-tag">§ 12.4 EXPOSURE</span>
+              <span class="reg-tag">DESERT SKY</span>
+              <span class="reg-tag">SAGE FLAT</span>
+              <span class="reg-tag">HIGH PRIORITY</span>
+            </div>
+          </div>
+          <div class="reg-status-col">
+            <div class="reg-date">ISSUED<br>Apr 22, 2026</div>
+            <span class="reg-status-pill status-atty">⚠ Atty Review Req.</span>
+            <div class="reg-projects">Applies to:<br>Desert Sky Wind<br>Sage Flat Solar</div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-sm approve">✓ Approve for Corpus</button>
+          <button class="btn-sm">⊕ Assign to Attorney</button>
+          <button class="btn-sm">⤓ Download Order</button>
+          <button class="btn-sm">◈ Apply to Shadow Redline</button>
+        </div>
+      </div>
+
+      <!-- Item 2 — State Leg, Pending -->
+      <div class="reg-item unreviewed">
+        <div class="reg-item-header">
+          <span class="reg-source-badge badge-co">CO</span>
+          <div class="reg-main">
+            <div class="reg-docket">CO SB 25-152 · ENROLLED — SENT TO GOVERNOR</div>
+            <div class="reg-title">Colorado Grid Reliability Standards — New Operator Requirements for Renewable Generators</div>
+            <div class="reg-summary">Establishes minimum reliability participation standards for renewable generators over 20MW in Colorado. Imposes telemetry, real-time reporting, and grid stability contribution requirements. May affect operational specs in § 6.x of active Colorado PPAs. Awaiting Governor signature — not yet in effect.</div>
+            <div class="reg-tags">
+              <span class="reg-tag">§ 6.x POTENTIAL</span>
+              <span class="reg-tag">MESA VERDE</span>
+              <span class="reg-tag">AWAIT SIGNATURE</span>
+              <span class="reg-tag">HUMAN-IN-LOOP</span>
+            </div>
+          </div>
+          <div class="reg-status-col">
+            <div class="reg-date">ENROLLED<br>Apr 21, 2026</div>
+            <span class="reg-status-pill status-pending">⧖ Pending Incorp.</span>
+            <div class="reg-projects">Applies to:<br>Mesa Verde Geo<br>(CO projects)</div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-sm approve">✓ Approve for Corpus</button>
+          <button class="btn-sm">⊕ Flag for Atty Review</button>
+          <button class="btn-sm">⤓ Download Bill Text</button>
+          <button class="btn-sm">◈ Mark: Awaiting Signature</button>
+        </div>
+      </div>
+
+      <!-- Item 3 — RTO -->
+      <div class="reg-item unreviewed">
+        <div class="reg-item-header">
+          <span class="reg-source-badge badge-wecc">WECC</span>
+          <div class="reg-main">
+            <div class="reg-docket">WECC RC-0072 · REVISED STANDARD</div>
+            <div class="reg-title">Real-Time Telemetry Requirements — Updated Data Points & Submission Intervals</div>
+            <div class="reg-summary">WECC RC-0072 revision updates required telemetry data points and reduces submission intervals from 4-second to 2-second reporting for generation facilities over 10MW. Operational spec language in § 6.3 of Desert Sky Wind and Mesa Verde Geo may conflict. Engineering review recommended before agent incorporation.</div>
+            <div class="reg-tags">
+              <span class="reg-tag">§ 6.3 EXPOSURE</span>
+              <span class="reg-tag">OPERATIONAL SPEC</span>
+              <span class="reg-tag">ENG REVIEW REQ.</span>
+              <span class="reg-tag">DESERT SKY</span>
+            </div>
+          </div>
+          <div class="reg-status-col">
+            <div class="reg-date">EFFECTIVE<br>Apr 20, 2026</div>
+            <span class="reg-status-pill status-pending">⧖ Eng. Review</span>
+            <div class="reg-projects">Applies to:<br>Desert Sky Wind<br>Mesa Verde Geo</div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-sm approve">✓ Approve for Corpus</button>
+          <button class="btn-sm">⊕ Route to Engineering</button>
+          <button class="btn-sm">⤓ Download Standard</button>
+        </div>
+      </div>
+
+      <!-- Item 4 — Incorporated -->
+      <div class="reg-item incorporated">
+        <div class="reg-item-header">
+          <span class="reg-source-badge badge-co">CO</span>
+          <div class="reg-main">
+            <div class="reg-docket">CO HB 24-1374 · SIGNED INTO LAW</div>
+            <div class="reg-title">Colorado Accelerated Renewable Permitting Act — CDPHE Streamlined Review</div>
+            <div class="reg-summary">Establishes 90-day CDPHE review window for renewable generation permitting applications. Impacts COD extension mechanisms in all Colorado PPAs. Agent corpus updated; permitting delay language in § 3.5 COD extension provisions already reflects this timeline.</div>
+            <div class="reg-tags">
+              <span class="reg-tag">§ 3.5 APPLIED</span>
+              <span class="reg-tag">CO PROJECTS</span>
+              <span class="reg-tag">IN CORPUS</span>
+            </div>
+          </div>
+          <div class="reg-status-col">
+            <div class="reg-date">SIGNED<br>Jun 3, 2024</div>
+            <span class="reg-status-pill status-incorporated">✓ Incorporated</span>
+            <div class="reg-projects">Applied to:<br>Mesa Verde Geo<br>Painted Rock Geo</div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-sm">⊙ View Corpus Entry</button>
+          <button class="btn-sm">⤓ Download</button>
+        </div>
+      </div>
+
+      <!-- Item 5 — FERC, Pending -->
+      <div class="reg-item unreviewed">
+        <div class="reg-item-header">
+          <span class="reg-source-badge badge-ferc">FERC</span>
+          <div class="reg-main">
+            <div class="reg-docket">EL24-72 · NOTICE OF PROPOSED RULEMAKING</div>
+            <div class="reg-title">Long-Term Transmission Planning — Resource Adequacy Contribution Standards</div>
+            <div class="reg-summary">NOPR proposes new resource adequacy contribution standards for variable renewable generators in long-term transmission planning. May affect capacity credit provisions in PPAs with load-serving entities. Comment period open through June 15, 2026. Not yet final — flagged for attorney monitoring.</div>
+            <div class="reg-tags">
+              <span class="reg-tag">CAPACITY CREDIT</span>
+              <span class="reg-tag">NOPR — NOT FINAL</span>
+              <span class="reg-tag">MONITORING</span>
+              <span class="reg-tag">DESERT SKY</span>
+            </div>
+          </div>
+          <div class="reg-status-col">
+            <div class="reg-date">NOPR ISSUED<br>Mar 15, 2026</div>
+            <span class="reg-status-pill status-review">◷ Monitoring</span>
+            <div class="reg-projects">Watch: All<br>wind/solar PPAs</div>
+          </div>
+        </div>
+        <div class="reg-actions">
+          <button class="btn-sm">⊕ Set Monitor Alert</button>
+          <button class="btn-sm">⤓ Download NOPR</button>
+          <button class="btn-sm">⊙ View Comment Docket</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div>
+
+      <div class="monitor-panel">
+        <div class="monitor-header">// Active Monitors</div>
+        <div class="monitor-body">
+          <div class="monitor-item">
+            <div>
+              <div class="monitor-name">FERC EFTS</div>
+              <div class="monitor-meta">14 dockets · Last: 09:30</div>
+            </div>
+            <div class="monitor-indicator ind-green"></div>
+          </div>
+          <div class="monitor-item">
+            <div>
+              <div class="monitor-name">CO Legislature</div>
+              <div class="monitor-meta">Session active · 3 tracked</div>
+            </div>
+            <div class="monitor-indicator ind-amber"></div>
+          </div>
+          <div class="monitor-item">
+            <div>
+              <div class="monitor-name">TX Legislature</div>
+              <div class="monitor-meta">Session active · 2 tracked</div>
+            </div>
+            <div class="monitor-indicator ind-green"></div>
+          </div>
+          <div class="monitor-item">
+            <div>
+              <div class="monitor-name">NV Legislature</div>
+              <div class="monitor-meta">Interim · 1 tracked</div>
+            </div>
+            <div class="monitor-indicator ind-green"></div>
+          </div>
+          <div class="monitor-item">
+            <div>
+              <div class="monitor-name">WECC Standards</div>
+              <div class="monitor-meta">Continuous · 3 active</div>
+            </div>
+            <div class="monitor-indicator ind-amber"></div>
+          </div>
+          <div class="monitor-item">
+            <div>
+              <div class="monitor-name">SPP Tariff</div>
+              <div class="monitor-meta">Continuous · 1 active</div>
+            </div>
+            <div class="monitor-indicator ind-green"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="monitor-panel">
+        <div class="monitor-header">// 30-Day Ingest Volume</div>
+        <div class="monitor-body">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-faint);margin-bottom:8px">NEW ITEMS INGESTED DAILY</div>
+          <div class="volume-chart">
+            <div class="vol-bar"><div class="vol-fill" style="height:35%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:55%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:40%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:70%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:30%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:45%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:80%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:60%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:50%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:90%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:65%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:100%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:75%"></div></div>
+            <div class="vol-bar"><div class="vol-fill" style="height:55%"></div></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text-faint);margin-top:6px">
+            <span>Mar 24</span><span>Apr 23</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:14px;">
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--amber)">23</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text-dim)">Pending</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--green)">9</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text-dim)">Incorporated</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--red)">3</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text-dim)">Atty Review</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="monitor-panel">
+        <div class="monitor-header">// Guardrail: Human-in-Loop</div>
+        <div class="monitor-body" style="font-size:12px;color:var(--text-dim);line-height:1.6">
+          <p style="margin-bottom:12px">Newly passed legislation and FERC orders are <strong style="color:var(--amber)">never auto-incorporated</strong> into the agent corpus. Each item requires attorney approval before influencing Shadow Redline output.</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;">
+              <span style="color:var(--text-faint)">Items awaiting approval</span>
+              <span style="color:var(--amber)">3</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;">
+              <span style="color:var(--text-faint)">Avg review time</span>
+              <span style="color:var(--text)">1.4 days</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;">
+              <span style="color:var(--text-faint)">Approval rate</span>
+              <span style="color:var(--green)">94%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
